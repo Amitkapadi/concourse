@@ -4479,7 +4479,7 @@ public class ConcourseServer
     }
 
     @Override
-    public void setPreference(String key, Object value) {
+    public void setPreference(String key, String value) {
         ConcourseServerPreferences.open(GlobalState.getPrefsFilePath())
                 .setProperty(key, value);
     }
