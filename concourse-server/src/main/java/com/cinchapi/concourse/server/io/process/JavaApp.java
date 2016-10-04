@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -185,13 +186,22 @@ public class JavaApp extends Process {
 
         // Thread which phones host process and checks its status for every 5
         // seconds. Terminates itself, if host process is down.
+        String processId = ManagementFactory.getRuntimeMXBean().getName()
+                .split("@")[0];
         processWatcher = Executors.newSingleThreadScheduledExecutor();
         processWatcher.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
                 while (isRunning()) {
-                    if(!checkIfProcessRunning()) {
-                        destroy();
+                    try {
+                        boolean status = ProcessValidator
+                                .isProcessRunning(processId);
+                        if(!status) {
+                            destroy();
+                        }
+                    }
+                    catch (Exception e) {
+                        Throwables.propagate(e);
                     }
                 }
             }
@@ -204,31 +214,8 @@ public class JavaApp extends Process {
             public void run() {
                 JavaApp.this.destroy();
             }
-            
-        }));
-    }
 
-    /**
-     * Check if the host process is running.
-     * 
-     * @return true if its running, false if not.
-     */
-    private boolean checkIfProcessRunning() {
-        try {
-            Process p = Runtime.getRuntime().exec("jps");
-            BufferedReader in = new BufferedReader(
-                    new InputStreamReader(p.getInputStream()));
-            String line = null;
-            while ((line = in.readLine()) != null) {
-                if(line.contains("ConcourseServer")) {
-                    return true;
-                }
-            }
-        }
-        catch (IOException e) {
-            Throwables.propagate(e);
-        }
-        return false;
+        }));
     }
 
     /**
